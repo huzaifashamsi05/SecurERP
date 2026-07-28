@@ -21,10 +21,10 @@ router.get("/leave", async (req, res): Promise<void> => {
   if (type) conditions.push(eq(leaveRequestsTable.type, type));
   if (conditions.length > 0) q = q.where(and(...conditions));
   const leaves = await q;
-  let guardsQuery = db.select({ id: guardsTable.id, userId: guardsTable.userId }).from(guardsTable);
+  let guardsQuery = db.select({ id: guardsTable.id, userId: guardsTable.userId }).from(guardsTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') guardsQuery = guardsQuery.where(eq(guardsTable.companyId, (req as any).user!.companyId!));
   const guards = await guardsQuery;
-  let usersQuery = db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable);
+  let usersQuery = db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') usersQuery = usersQuery.where(eq(usersTable.companyId, (req as any).user!.companyId!));
   const users = await usersQuery;
   res.json(leaves.map(l => ({ id: l.id, guardId: l.guardId, guardName: guardName(guards, users, l.guardId), type: l.type, startDate: l.startDate, endDate: l.endDate, reason: l.reason ?? null, status: l.status, reviewedBy: l.reviewedBy ?? null, reviewNotes: l.reviewNotes ?? null, createdAt: l.createdAt.toISOString() })));

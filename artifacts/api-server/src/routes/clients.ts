@@ -12,7 +12,7 @@ router.get("/clients", async (req, res): Promise<void> => {
   if (status) conditions.push(eq(clientsTable.status, status));
   if (conditions.length > 0) q = q.where(and(...conditions));
   const clients = await q;
-  let siteCountsQuery = db.select({ clientId: sitesTable.clientId, cnt: count() }).from(sitesTable);
+  let siteCountsQuery = db.select({ clientId: sitesTable.clientId, cnt: count() }).from(sitesTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') siteCountsQuery = siteCountsQuery.where(eq(sitesTable.companyId, (req as any).user!.companyId!));
   const siteCounts = await siteCountsQuery.groupBy(sitesTable.clientId);
   const countMap: Record<number, number> = {};
@@ -84,7 +84,7 @@ router.get("/sites", async (req, res): Promise<void> => {
   if (status) conditions.push(eq(sitesTable.status, status));
   if (conditions.length > 0) q = q.where(and(...conditions));
   const sites = await q;
-  let clientsQuery = db.select({ id: clientsTable.id, name: clientsTable.name }).from(clientsTable);
+  let clientsQuery = db.select({ id: clientsTable.id, name: clientsTable.name }).from(clientsTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') clientsQuery = clientsQuery.where(eq(clientsTable.companyId, (req as any).user!.companyId!));
   const clients = await clientsQuery;
   const clientMap: Record<number, string> = {};

@@ -24,13 +24,13 @@ router.get("/shifts", async (req, res): Promise<void> => {
   if (status) conditions.push(eq(shiftsTable.status, status));
   if (conditions.length > 0) q = q.where(and(...conditions));
   const shifts = await q;
-  let guardsQuery = db.select({ id: guardsTable.id, userId: guardsTable.userId }).from(guardsTable);
+  let guardsQuery = db.select({ id: guardsTable.id, userId: guardsTable.userId }).from(guardsTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') guardsQuery = guardsQuery.where(eq(guardsTable.companyId, (req as any).user!.companyId!));
   const guards = await guardsQuery;
-  let usersQuery = db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable);
+  let usersQuery = db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') usersQuery = usersQuery.where(eq(usersTable.companyId, (req as any).user!.companyId!));
   const users = await usersQuery;
-  let sitesQuery = db.select({ id: sitesTable.id, name: sitesTable.name }).from(sitesTable);
+  let sitesQuery = db.select({ id: sitesTable.id, name: sitesTable.name }).from(sitesTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') sitesQuery = sitesQuery.where(eq(sitesTable.companyId, (req as any).user!.companyId!));
   const sites = await sitesQuery;
   res.json(shifts.map(s => {
@@ -103,10 +103,10 @@ router.get("/attendance", async (req, res): Promise<void> => {
   if (status) conditions.push(eq(attendanceTable.status, status));
   if (conditions.length > 0) q = q.where(and(...conditions));
   const recs = await q;
-  let guardsQuery = db.select({ id: guardsTable.id, userId: guardsTable.userId }).from(guardsTable);
+  let guardsQuery = db.select({ id: guardsTable.id, userId: guardsTable.userId }).from(guardsTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') guardsQuery = guardsQuery.where(eq(guardsTable.companyId, (req as any).user!.companyId!));
   const guards = await guardsQuery;
-  let usersQuery = db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable);
+  let usersQuery = db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') usersQuery = usersQuery.where(eq(usersTable.companyId, (req as any).user!.companyId!));
   const users = await usersQuery;
   res.json(recs.map(r => {
@@ -159,13 +159,13 @@ router.get("/patrols", async (req, res): Promise<void> => {
   if (status) conditions.push(eq(patrolsTable.status, status));
   if (conditions.length > 0) q = q.where(and(...conditions));
   const patrols = await q;
-  let guardsQuery = db.select({ id: guardsTable.id, userId: guardsTable.userId }).from(guardsTable);
+  let guardsQuery = db.select({ id: guardsTable.id, userId: guardsTable.userId }).from(guardsTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') guardsQuery = guardsQuery.where(eq(guardsTable.companyId, (req as any).user!.companyId!));
   const guards = await guardsQuery;
-  let usersQuery = db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable);
+  let usersQuery = db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') usersQuery = usersQuery.where(eq(usersTable.companyId, (req as any).user!.companyId!));
   const users = await usersQuery;
-  let sitesQuery = db.select({ id: sitesTable.id, name: sitesTable.name }).from(sitesTable);
+  let sitesQuery = db.select({ id: sitesTable.id, name: sitesTable.name }).from(sitesTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') sitesQuery = sitesQuery.where(eq(sitesTable.companyId, (req as any).user!.companyId!));
   const sites = await sitesQuery;
   res.json(patrols.map(p => {
@@ -216,7 +216,7 @@ router.get("/checkpoints", async (req, res): Promise<void> => {
   if (siteId) conditions.push(eq(checkpointsTable.siteId, parseInt(siteId, 10)));
   if (conditions.length > 0) q = q.where(and(...conditions));
   const cps = await q;
-  let sitesQuery = db.select({ id: sitesTable.id, name: sitesTable.name }).from(sitesTable);
+  let sitesQuery = db.select({ id: sitesTable.id, name: sitesTable.name }).from(sitesTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') sitesQuery = sitesQuery.where(eq(sitesTable.companyId, (req as any).user!.companyId!));
   const sites = await sitesQuery;
   res.json(cps.map(c => ({ id: c.id, siteId: c.siteId, siteName: nameOf(sites, c.siteId), name: c.name, description: c.description ?? null, latitude: c.latitude ? parseFloat(c.latitude) : null, longitude: c.longitude ? parseFloat(c.longitude) : null, qrCode: c.qrCode ?? null, status: c.status, createdAt: c.createdAt.toISOString() })));
@@ -288,13 +288,13 @@ router.get("/incidents", async (req, res): Promise<void> => {
   if (status) conditions.push(eq(incidentsTable.status, status));
   if (conditions.length > 0) q = q.where(and(...conditions));
   const incidents = await q;
-  let guardsQuery = db.select({ id: guardsTable.id, userId: guardsTable.userId }).from(guardsTable);
+  let guardsQuery = db.select({ id: guardsTable.id, userId: guardsTable.userId }).from(guardsTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') guardsQuery = guardsQuery.where(eq(guardsTable.companyId, (req as any).user!.companyId!));
   const guards = await guardsQuery;
-  let usersQuery = db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable);
+  let usersQuery = db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') usersQuery = usersQuery.where(eq(usersTable.companyId, (req as any).user!.companyId!));
   const users = await usersQuery;
-  let sitesQuery = db.select({ id: sitesTable.id, name: sitesTable.name }).from(sitesTable);
+  let sitesQuery = db.select({ id: sitesTable.id, name: sitesTable.name }).from(sitesTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') sitesQuery = sitesQuery.where(eq(sitesTable.companyId, (req as any).user!.companyId!));
   const sites = await sitesQuery;
   res.json(incidents.map(i => {
@@ -349,13 +349,13 @@ router.get("/daily-reports", async (req, res): Promise<void> => {
   if (status) conditions.push(eq(dailyReportsTable.status, status));
   if (conditions.length > 0) q = q.where(and(...conditions));
   const reports = await q;
-  let guardsQuery = db.select({ id: guardsTable.id, userId: guardsTable.userId }).from(guardsTable);
+  let guardsQuery = db.select({ id: guardsTable.id, userId: guardsTable.userId }).from(guardsTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') guardsQuery = guardsQuery.where(eq(guardsTable.companyId, (req as any).user!.companyId!));
   const guards = await guardsQuery;
-  let usersQuery = db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable);
+  let usersQuery = db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') usersQuery = usersQuery.where(eq(usersTable.companyId, (req as any).user!.companyId!));
   const users = await usersQuery;
-  let sitesQuery = db.select({ id: sitesTable.id, name: sitesTable.name }).from(sitesTable);
+  let sitesQuery = db.select({ id: sitesTable.id, name: sitesTable.name }).from(sitesTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') sitesQuery = sitesQuery.where(eq(sitesTable.companyId, (req as any).user!.companyId!));
   const sites = await sitesQuery;
   res.json(reports.map(r => {

@@ -27,10 +27,10 @@ router.get("/guards", async (req, res): Promise<void> => {
   if (siteId) conditions.push(eq(guardsTable.siteId, parseInt(siteId, 10)));
   if (conditions.length > 0) q = q.where(and(...conditions));
   const guards = await q;
-  let usersQuery = db.select().from(usersTable);
+  let usersQuery = db.select().from(usersTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') usersQuery = usersQuery.where(eq(usersTable.companyId, (req as any).user!.companyId!));
   const users = await usersQuery;
-  let sitesQuery = db.select().from(sitesTable);
+  let sitesQuery = db.select().from(sitesTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') sitesQuery = sitesQuery.where(eq(sitesTable.companyId, (req as any).user!.companyId!));
   const sites = await sitesQuery;
   res.json(await Promise.all(guards.map(g => enrichGuard(g, users, sites))));
@@ -57,13 +57,13 @@ router.post("/guards", async (req, res): Promise<void> => {
     joinDate: joinDate ?? null,
   }).returning();
 
-  let sitesQuery = db.select().from(sitesTable);
+  let sitesQuery = db.select().from(sitesTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') sitesQuery = sitesQuery.where(eq(sitesTable.companyId, (req as any).user!.companyId!));
   const sites = await sitesQuery;
   res.status(201).json(await enrichGuard(guard, [user], sites));
 });
 
-router.get("/guards/stats", async (_req, res): Promise<void> => {
+router.get("/guards/stats", async (req, res): Promise<void> => {
   const cid = (req as any).user!.role !== 'super_admin' ? (req as any).user!.companyId! : null;
   const cnd = (tbl: any, conds: any[] = []) => cid ? and(eq(tbl.companyId, cid), ...conds) : (conds.length ? and(...conds) : undefined);
   const [total] = await db.select({ count: count() }).from(guardsTable).where(cnd(guardsTable));
@@ -80,10 +80,10 @@ router.get("/guards/:id", async (req, res): Promise<void> => {
   if ((req as any).user!.role !== 'super_admin') conditions.push(eq(guardsTable.companyId, (req as any).user!.companyId!));
   const [guard] = await db.select().from(guardsTable).where(and(...conditions));
   if (!guard) { res.status(404).json({ error: "Not found" }); return; }
-  let usersQuery = db.select().from(usersTable);
+  let usersQuery = db.select().from(usersTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') usersQuery = usersQuery.where(eq(usersTable.companyId, (req as any).user!.companyId!));
   const users = await usersQuery;
-  let sitesQuery = db.select().from(sitesTable);
+  let sitesQuery = db.select().from(sitesTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') sitesQuery = sitesQuery.where(eq(sitesTable.companyId, (req as any).user!.companyId!));
   const sites = await sitesQuery;
   res.json(await enrichGuard(guard, users, sites));
@@ -108,10 +108,10 @@ router.patch("/guards/:id", async (req, res): Promise<void> => {
     if (name !== undefined) userUpdates.name = name;
     await db.update(usersTable).set(userUpdates).where(eq(usersTable.id, guard.userId));
   }
-  let usersQuery = db.select().from(usersTable);
+  let usersQuery = db.select().from(usersTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') usersQuery = usersQuery.where(eq(usersTable.companyId, (req as any).user!.companyId!));
   const users = await usersQuery;
-  let sitesQuery = db.select().from(sitesTable);
+  let sitesQuery = db.select().from(sitesTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') sitesQuery = sitesQuery.where(eq(sitesTable.companyId, (req as any).user!.companyId!));
   const sites = await sitesQuery;
   res.json(await enrichGuard(guard, users, sites));

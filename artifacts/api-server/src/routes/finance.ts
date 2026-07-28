@@ -32,7 +32,7 @@ router.get("/payroll", async (req, res): Promise<void> => {
   if (status) conditions.push(eq(payrollTable.status, status));
   if (conditions.length > 0) q = q.where(and(...conditions));
   const records = await q;
-  let guardsQuery = db.select({ id: guardsTable.id, userId: guardsTable.userId }).from(guardsTable);
+  let guardsQuery = db.select({ id: guardsTable.id, userId: guardsTable.userId }).from(guardsTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') guardsQuery = guardsQuery.where(eq(guardsTable.companyId, (req as any).user!.companyId!));
   const guards = await guardsQuery;
   const users = await db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable);
@@ -92,7 +92,7 @@ router.get("/invoices", async (req, res): Promise<void> => {
   if (status) conditions.push(eq(invoicesTable.status, status));
   if (conditions.length > 0) q = q.where(and(...conditions));
   const invoices = await q;
-  let clientsQuery = db.select({ id: clientsTable.id, name: clientsTable.name }).from(clientsTable);
+  let clientsQuery = db.select({ id: clientsTable.id, name: clientsTable.name }).from(clientsTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') clientsQuery = clientsQuery.where(eq(clientsTable.companyId, (req as any).user!.companyId!));
   const clients = await clientsQuery;
   const clientMap: Record<number, string> = {};
@@ -147,7 +147,7 @@ router.get("/expenses", async (req, res): Promise<void> => {
   if (submittedBy) conditions.push(eq(expensesTable.submittedBy, parseInt(submittedBy, 10)));
   if (conditions.length > 0) q = q.where(and(...conditions));
   const expenses = await q;
-  let usersQuery = db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable);
+  let usersQuery = db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable).$dynamic();
   if ((req as any).user!.role !== 'super_admin') usersQuery = usersQuery.where(eq(usersTable.companyId, (req as any).user!.companyId!));
   const users = await usersQuery;
   const uMap: Record<number, string> = {};
