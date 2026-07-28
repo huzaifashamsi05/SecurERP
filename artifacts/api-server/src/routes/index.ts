@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
 import authRouter from "./auth";
+import companiesRouter from "./companies";
 import dashboardRouter from "./dashboard";
 import usersRouter from "./users";
 import guardsRouter from "./guards";
@@ -11,10 +12,17 @@ import financeRouter from "./finance";
 import assetsRouter from "./assets";
 import notificationsRouter from "./notifications";
 
+import { requireAuth } from "../middlewares/auth";
+
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+
+// Apply authentication middleware for all subsequent routes
+router.use(requireAuth);
+
+router.use(companiesRouter);
 router.use(dashboardRouter);
 router.use(usersRouter);
 router.use(guardsRouter);

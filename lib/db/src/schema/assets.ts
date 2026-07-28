@@ -2,9 +2,11 @@ import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { guardsTable } from "./guards";
+import { companiesTable } from "./companies";
 
 export const equipmentTable = pgTable("equipment", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companiesTable.id).notNull(),
   name: text("name").notNull(),
   type: text("type").notNull(), // radio | torch | handcuffs | vest | camera | baton | other
   serialNumber: text("serial_number"),
@@ -18,6 +20,7 @@ export const equipmentTable = pgTable("equipment", {
 
 export const vehiclesTable = pgTable("vehicles", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companiesTable.id).notNull(),
   registration: text("registration").notNull().unique(),
   make: text("make").notNull(),
   model: text("model").notNull(),

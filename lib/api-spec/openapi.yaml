@@ -67,6 +67,38 @@ paths:
         "401":
           description: Invalid credentials
 
+  /auth/verify:
+    post:
+      operationId: verifyIdentity
+      tags: [auth]
+      summary: Verify identity for smart login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+              required:
+                - email
+      responses:
+        "200":
+          description: Identity verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  role:
+                    type: string
+                  companyName:
+                    type: string
+                    nullable: true
+        "404":
+          description: Identity not found
+
   /auth/me:
     get:
       operationId: getMe

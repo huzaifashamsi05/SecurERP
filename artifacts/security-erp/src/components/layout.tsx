@@ -21,7 +21,10 @@ import {
   Bell, 
   LogOut,
   Menu,
-  ChevronDown
+  ChevronDown,
+  Building,
+  UserCog,
+  Network
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useLogout } from '@workspace/api-client-react';
@@ -30,43 +33,51 @@ const MODULES = [
   {
     name: 'Overview',
     items: [
-      { name: 'Dashboard', path: '/', icon: ShieldCheck },
+      { name: 'Dashboard', path: '/', icon: ShieldCheck, allowedRoles: ['super_admin', 'company_admin', 'operations_manager', 'hr_manager', 'finance_manager', 'field_supervisor', 'guard', 'client'] },
     ]
   },
   {
     name: 'Operations',
     items: [
-      { name: 'Sites', path: '/sites', icon: MapPin },
-      { name: 'Shifts', path: '/shifts', icon: Clock },
-      { name: 'Attendance', path: '/attendance', icon: CheckSquare },
-      { name: 'Patrols', path: '/patrols', icon: Map },
-      { name: 'Incidents', path: '/incidents', icon: AlertTriangle },
-      { name: 'Daily Reports', path: '/daily-reports', icon: FileText },
+      { name: 'Sites', path: '/sites', icon: MapPin, allowedRoles: ['super_admin', 'company_admin', 'operations_manager', 'field_supervisor', 'client'] },
+      { name: 'Shifts', path: '/shifts', icon: Clock, allowedRoles: ['super_admin', 'company_admin', 'operations_manager', 'field_supervisor', 'guard'] },
+      { name: 'Attendance', path: '/attendance', icon: CheckSquare, allowedRoles: ['super_admin', 'company_admin', 'operations_manager', 'hr_manager', 'field_supervisor', 'guard'] },
+      { name: 'Patrols', path: '/patrols', icon: Map, allowedRoles: ['super_admin', 'company_admin', 'operations_manager', 'field_supervisor', 'guard'] },
+      { name: 'Incidents', path: '/incidents', icon: AlertTriangle, allowedRoles: ['super_admin', 'company_admin', 'operations_manager', 'field_supervisor', 'guard', 'client'] },
+      { name: 'Daily Reports', path: '/daily-reports', icon: FileText, allowedRoles: ['super_admin', 'company_admin', 'operations_manager', 'field_supervisor', 'guard', 'client'] },
+    ]
+  },
+  {
+    name: 'SaaS Admin',
+    items: [
+      { name: 'Companies', path: '/admin/companies', icon: Building, allowedRoles: ['super_admin'] },
     ]
   },
   {
     name: 'People',
     items: [
-      { name: 'Guards', path: '/guards', icon: Users },
-      { name: 'Clients', path: '/clients', icon: Briefcase },
+      { name: 'Staff', path: '/staff', icon: UserCog, allowedRoles: ['super_admin', 'company_admin', 'hr_manager'] },
+      { name: 'Roles & Access', path: '/roles', icon: Network, allowedRoles: ['super_admin', 'company_admin'] },
+      { name: 'Guards', path: '/guards', icon: Users, allowedRoles: ['super_admin', 'company_admin', 'operations_manager', 'hr_manager', 'field_supervisor'] },
+      { name: 'Clients', path: '/clients', icon: Briefcase, allowedRoles: ['super_admin', 'company_admin', 'operations_manager', 'finance_manager'] },
     ]
   },
   {
     name: 'HR & Finance',
     items: [
-      { name: 'Leave', path: '/leave', icon: CalendarOff },
-      { name: 'Payroll', path: '/payroll', icon: DollarSign },
-      { name: 'Invoices', path: '/invoices', icon: Receipt },
-      { name: 'Expenses', path: '/expenses', icon: CreditCard },
-      { name: 'Training', path: '/training', icon: GraduationCap },
-      { name: 'Recruitment', path: '/recruitment', icon: UserPlus },
+      { name: 'Leave', path: '/leave', icon: CalendarOff, allowedRoles: ['super_admin', 'company_admin', 'hr_manager', 'guard', 'field_supervisor'] },
+      { name: 'Payroll', path: '/payroll', icon: DollarSign, allowedRoles: ['super_admin', 'company_admin', 'hr_manager', 'finance_manager'] },
+      { name: 'Invoices', path: '/invoices', icon: Receipt, allowedRoles: ['super_admin', 'company_admin', 'finance_manager'] },
+      { name: 'Expenses', path: '/expenses', icon: CreditCard, allowedRoles: ['super_admin', 'company_admin', 'finance_manager'] },
+      { name: 'Training', path: '/training', icon: GraduationCap, allowedRoles: ['super_admin', 'company_admin', 'hr_manager', 'operations_manager', 'guard'] },
+      { name: 'Recruitment', path: '/recruitment', icon: UserPlus, allowedRoles: ['super_admin', 'company_admin', 'hr_manager'] },
     ]
   },
   {
     name: 'Assets',
     items: [
-      { name: 'Equipment', path: '/equipment', icon: Package },
-      { name: 'Vehicles', path: '/vehicles', icon: Truck },
+      { name: 'Equipment', path: '/equipment', icon: Package, allowedRoles: ['super_admin', 'company_admin', 'operations_manager'] },
+      { name: 'Vehicles', path: '/vehicles', icon: Truck, allowedRoles: ['super_admin', 'company_admin', 'operations_manager'] },
     ]
   }
 ];
@@ -104,24 +115,32 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
         
         <div className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
-          {MODULES.map((module) => (
-            <div key={module.name}>
-              <div className="px-3 mb-2 text-xs font-semibold text-sidebar-accent-foreground/50 uppercase tracking-wider">
-                {module.name}
+          {MODULES.map((module) => {
+            const visibleItems = module.items.filter(item => 
+              !item.allowedRoles || item.allowedRoles.includes(user.role)
+            );
+            
+            if (visibleItems.length === 0) return null;
+            
+            return (
+              <div key={module.name}>
+                <div className="px-3 mb-2 text-xs font-semibold text-sidebar-accent-foreground/50 uppercase tracking-wider">
+                  {module.name}
+                </div>
+                <div className="space-y-1">
+                  {visibleItems.map((item) => {
+                    const isActive = location === item.path || (item.path !== '/' && location.startsWith(item.path));
+                    return (
+                      <Link key={item.path} href={item.path} className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive ? 'bg-sidebar-primary text-sidebar-primary-foreground' : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}>
+                        <item.icon className="h-4 w-4" />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="space-y-1">
-                {module.items.map((item) => {
-                  const isActive = location === item.path || (item.path !== '/' && location.startsWith(item.path));
-                  return (
-                    <Link key={item.path} href={item.path} className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive ? 'bg-sidebar-primary text-sidebar-primary-foreground' : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}>
-                      <item.icon className="h-4 w-4" />
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         
         <div className="p-4 border-t border-sidebar-border">

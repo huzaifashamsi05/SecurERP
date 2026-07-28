@@ -4,9 +4,11 @@ import { z } from "zod/v4";
 import { guardsTable } from "./guards";
 import { clientsTable } from "./clients";
 import { usersTable } from "./users";
+import { companiesTable } from "./companies";
 
 export const payrollTable = pgTable("payroll", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companiesTable.id).notNull(),
   guardId: integer("guard_id").notNull().references(() => guardsTable.id),
   period: text("period").notNull(), // e.g. "2024-01"
   basicSalary: numeric("basic_salary", { precision: 12, scale: 2 }).notNull(),
@@ -21,6 +23,7 @@ export const payrollTable = pgTable("payroll", {
 
 export const invoicesTable = pgTable("invoices", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companiesTable.id).notNull(),
   clientId: integer("client_id").notNull().references(() => clientsTable.id),
   invoiceNumber: text("invoice_number").notNull().unique(),
   period: text("period"),
@@ -37,6 +40,7 @@ export const invoicesTable = pgTable("invoices", {
 
 export const expensesTable = pgTable("expenses", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companiesTable.id).notNull(),
   category: text("category").notNull(), // fuel | equipment | uniform | training | maintenance | other
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   date: text("date").notNull(),

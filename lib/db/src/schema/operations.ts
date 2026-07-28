@@ -3,9 +3,11 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { guardsTable } from "./guards";
 import { sitesTable } from "./clients";
+import { companiesTable } from "./companies";
 
 export const shiftsTable = pgTable("shifts", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companiesTable.id).notNull(),
   guardId: integer("guard_id").notNull().references(() => guardsTable.id),
   siteId: integer("site_id").notNull().references(() => sitesTable.id),
   startTime: timestamp("start_time", { withTimezone: true }).notNull(),
@@ -18,6 +20,7 @@ export const shiftsTable = pgTable("shifts", {
 
 export const attendanceTable = pgTable("attendance", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companiesTable.id).notNull(),
   guardId: integer("guard_id").notNull().references(() => guardsTable.id),
   shiftId: integer("shift_id").references(() => shiftsTable.id),
   date: text("date").notNull(), // YYYY-MM-DD
@@ -31,6 +34,7 @@ export const attendanceTable = pgTable("attendance", {
 
 export const checkpointsTable = pgTable("checkpoints", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companiesTable.id).notNull(),
   siteId: integer("site_id").notNull().references(() => sitesTable.id),
   name: text("name").notNull(),
   description: text("description"),
@@ -44,6 +48,7 @@ export const checkpointsTable = pgTable("checkpoints", {
 
 export const patrolsTable = pgTable("patrols", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companiesTable.id).notNull(),
   siteId: integer("site_id").notNull().references(() => sitesTable.id),
   guardId: integer("guard_id").notNull().references(() => guardsTable.id),
   startTime: timestamp("start_time", { withTimezone: true }),
@@ -58,6 +63,7 @@ export const patrolsTable = pgTable("patrols", {
 
 export const incidentsTable = pgTable("incidents", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companiesTable.id).notNull(),
   siteId: integer("site_id").notNull().references(() => sitesTable.id),
   guardId: integer("guard_id").notNull().references(() => guardsTable.id),
   type: text("type").notNull(), // theft | trespass | fire | medical | vandalism | suspicious | other
@@ -72,6 +78,7 @@ export const incidentsTable = pgTable("incidents", {
 
 export const dailyReportsTable = pgTable("daily_reports", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companiesTable.id).notNull(),
   guardId: integer("guard_id").notNull().references(() => guardsTable.id),
   siteId: integer("site_id").notNull().references(() => sitesTable.id),
   date: text("date").notNull(), // YYYY-MM-DD

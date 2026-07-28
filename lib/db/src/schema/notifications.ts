@@ -2,9 +2,11 @@ import { pgTable, text, serial, timestamp, integer, boolean } from "drizzle-orm/
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
+import { companiesTable } from "./companies";
 
 export const notificationsTable = pgTable("notifications", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companiesTable.id).notNull(),
   userId: integer("user_id").references(() => usersTable.id),
   type: text("type").notNull(), // incident | shift | attendance | leave | payroll | system
   title: text("title").notNull(),
@@ -17,6 +19,7 @@ export const notificationsTable = pgTable("notifications", {
 
 export const activityLogTable = pgTable("activity_log", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companiesTable.id).notNull(),
   type: text("type").notNull(),
   description: text("description").notNull(),
   actorName: text("actor_name"),

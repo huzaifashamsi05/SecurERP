@@ -1,39 +1,46 @@
 import { useEffect } from 'react';
-import { Route, Switch, Router as WouterRouter } from 'wouter';
+import { Route, Switch, Router as WouterRouter, useLocation } from 'wouter';
 import { useAuth, AuthProvider } from '@/contexts/auth-context';
 import { Layout } from '@/components/layout';
 import Login from '@/pages/auth/login';
 import ForgotPassword from '@/pages/auth/forgot-password';
 import Dashboard from '@/pages/dashboard';
 import Guards from '@/pages/guards/index';
+import GuardProfile from '@/pages/guards/guard-profile';
 import Clients from '@/pages/people/clients';
+import ClientDetails from '@/pages/people/client-details';
 import Sites from '@/pages/operations/sites';
 import Shifts from '@/pages/operations/shifts';
 import Attendance from '@/pages/operations/attendance';
+import Patrols from '@/pages/operations/patrols';
+import Checkpoints from '@/pages/operations/checkpoints';
 import Incidents from '@/pages/operations/incidents';
+import DailyReports from '@/pages/operations/daily-reports';
 import Payroll from '@/pages/hr/payroll';
 import Leave from '@/pages/hr/leave';
 import Expenses from '@/pages/hr/expenses';
 import Invoices from '@/pages/hr/invoices';
+import Training from '@/pages/hr/training';
+import Recruitment from '@/pages/hr/recruitment';
 import Vehicles from '@/pages/assets/vehicles';
 import Equipment from '@/pages/assets/equipment';
 import Notifications from '@/pages/notifications';
+import Companies from '@/pages/admin/companies';
+import Staff from '@/pages/people/staff';
+import RoleMatrixPage from '@/pages/people/role-matrix';
 
-// Placeholder pages to be implemented
-const Placeholder = ({ title }: { title: string }) => (
-  <div className="flex items-center justify-center h-full min-h-[400px]">
-    <div className="text-center space-y-2">
-      <h2 className="text-2xl font-bold text-foreground">{title}</h2>
-      <p className="text-muted-foreground">Module under construction</p>
-    </div>
-  </div>
-);
-
-function ProtectedRoute({ component: Component, ...rest }: { component: any, [key: string]: any }) {
-  const { isAuthenticated, isLoading } = useAuth();
+function ProtectedRoute({ component: Component, allowedRoles, ...rest }: { component: any, allowedRoles?: string[], [key: string]: any }) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
   
   if (isLoading) return null;
-  if (!isAuthenticated) return null; // AuthProvider redirects
+  if (!isAuthenticated || !user) return null; // AuthProvider redirects
+  
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    // Redirect unauthorized users to dashboard
+    setLocation('/');
+    return null;
+  }
   
   return (
     <Layout>
@@ -49,29 +56,32 @@ function Routes() {
       <Route path="/forgot-password" component={ForgotPassword} />
       
       <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
-      <Route path="/guards" component={() => <ProtectedRoute component={Guards} />} />
-      <Route path="/guards/:id" component={() => <ProtectedRoute component={() => <Placeholder title="Guard Profile" />} />} />
-      <Route path="/clients" component={() => <ProtectedRoute component={Clients} />} />
-      <Route path="/clients/:id" component={() => <ProtectedRoute component={() => <Placeholder title="Client Details" />} />} />
-      <Route path="/sites" component={() => <ProtectedRoute component={Sites} />} />
-      <Route path="/shifts" component={() => <ProtectedRoute component={Shifts} />} />
-      <Route path="/attendance" component={() => <ProtectedRoute component={Attendance} />} />
-      <Route path="/patrols" component={() => <ProtectedRoute component={() => <Placeholder title="Patrols" />} />} />
-      <Route path="/checkpoints" component={() => <ProtectedRoute component={() => <Placeholder title="Checkpoints" />} />} />
-      <Route path="/incidents" component={() => <ProtectedRoute component={Incidents} />} />
-      <Route path="/incidents/:id" component={() => <ProtectedRoute component={() => <Placeholder title="Incident Details" />} />} />
-      <Route path="/daily-reports" component={() => <ProtectedRoute component={() => <Placeholder title="Daily Reports" />} />} />
+      <Route path="/admin/companies" component={() => <ProtectedRoute component={Companies} allowedRoles={['super_admin']} />} />
+      <Route path="/staff" component={() => <ProtectedRoute component={Staff} allowedRoles={['super_admin', 'company_admin', 'hr_manager']} />} />
+      <Route path="/roles" component={() => <ProtectedRoute component={RoleMatrixPage} allowedRoles={['super_admin', 'company_admin']} />} />
       
-      <Route path="/leave" component={() => <ProtectedRoute component={Leave} />} />
-      <Route path="/payroll" component={() => <ProtectedRoute component={Payroll} />} />
-      <Route path="/invoices" component={() => <ProtectedRoute component={Invoices} />} />
-      <Route path="/expenses" component={() => <ProtectedRoute component={Expenses} />} />
+      <Route path="/guards" component={() => <ProtectedRoute component={Guards} allowedRoles={['super_admin', 'company_admin', 'operations_manager', 'hr_manager', 'field_supervisor']} />} />
+      <Route path="/guards/:id" component={() => <ProtectedRoute component={GuardProfile} allowedRoles={['super_admin', 'company_admin', 'operations_manager', 'hr_manager', 'field_supervisor']} />} />
+      <Route path="/clients" component={() => <ProtectedRoute component={Clients} allowedRoles={['super_admin', 'company_admin', 'operations_manager', 'finance_manager']} />} />
+      <Route path="/clients/:id" component={() => <ProtectedRoute component={ClientDetails} allowedRoles={['super_admin', 'company_admin', 'operations_manager', 'finance_manager']} />} />
+      <Route path="/sites" component={() => <ProtectedRoute component={Sites} allowedRoles={['super_admin', 'company_admin', 'operations_manager', 'field_supervisor', 'client']} />} />
+      <Route path="/shifts" component={() => <ProtectedRoute component={Shifts} allowedRoles={['super_admin', 'company_admin', 'operations_manager', 'field_supervisor', 'guard']} />} />
+      <Route path="/attendance" component={() => <ProtectedRoute component={Attendance} allowedRoles={['super_admin', 'company_admin', 'operations_manager', 'hr_manager', 'field_supervisor', 'guard']} />} />
+      <Route path="/patrols" component={() => <ProtectedRoute component={Patrols} allowedRoles={['super_admin', 'company_admin', 'operations_manager', 'field_supervisor', 'guard']} />} />
+      <Route path="/checkpoints" component={() => <ProtectedRoute component={Checkpoints} allowedRoles={['super_admin', 'company_admin', 'operations_manager', 'field_supervisor']} />} />
+      <Route path="/incidents" component={() => <ProtectedRoute component={Incidents} allowedRoles={['super_admin', 'company_admin', 'operations_manager', 'field_supervisor', 'guard', 'client']} />} />
+      <Route path="/daily-reports" component={() => <ProtectedRoute component={DailyReports} allowedRoles={['super_admin', 'company_admin', 'operations_manager', 'field_supervisor', 'guard', 'client']} />} />
       
-      <Route path="/equipment" component={() => <ProtectedRoute component={Equipment} />} />
-      <Route path="/vehicles" component={() => <ProtectedRoute component={Vehicles} />} />
+      <Route path="/leave" component={() => <ProtectedRoute component={Leave} allowedRoles={['super_admin', 'company_admin', 'hr_manager', 'guard', 'field_supervisor']} />} />
+      <Route path="/payroll" component={() => <ProtectedRoute component={Payroll} allowedRoles={['super_admin', 'company_admin', 'hr_manager', 'finance_manager']} />} />
+      <Route path="/invoices" component={() => <ProtectedRoute component={Invoices} allowedRoles={['super_admin', 'company_admin', 'finance_manager']} />} />
+      <Route path="/expenses" component={() => <ProtectedRoute component={Expenses} allowedRoles={['super_admin', 'company_admin', 'finance_manager']} />} />
       
-      <Route path="/training" component={() => <ProtectedRoute component={() => <Placeholder title="Training" />} />} />
-      <Route path="/recruitment" component={() => <ProtectedRoute component={() => <Placeholder title="Recruitment Pipeline" />} />} />
+      <Route path="/equipment" component={() => <ProtectedRoute component={Equipment} allowedRoles={['super_admin', 'company_admin', 'operations_manager']} />} />
+      <Route path="/vehicles" component={() => <ProtectedRoute component={Vehicles} allowedRoles={['super_admin', 'company_admin', 'operations_manager']} />} />
+      
+      <Route path="/training" component={() => <ProtectedRoute component={Training} allowedRoles={['super_admin', 'company_admin', 'hr_manager', 'operations_manager', 'guard']} />} />
+      <Route path="/recruitment" component={() => <ProtectedRoute component={Recruitment} allowedRoles={['super_admin', 'company_admin', 'hr_manager']} />} />
       <Route path="/notifications" component={() => <ProtectedRoute component={Notifications} />} />
       
       <Route component={() => (
@@ -96,3 +106,4 @@ export default function App() {
     </AuthProvider>
   );
 }
+

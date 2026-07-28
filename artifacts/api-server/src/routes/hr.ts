@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db, leaveRequestsTable, trainingSessionsTable, applicantsTable, guardsTable, usersTable } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -14,25 +14,34 @@ function guardName(guards: any[], users: any[], guardId: number) {
 router.get("/leave", async (req, res): Promise<void> => {
   const { guardId, status, type } = req.query as Record<string, string>;
   let q = db.select().from(leaveRequestsTable).$dynamic();
-  if (guardId) q = q.where(eq(leaveRequestsTable.guardId, parseInt(guardId, 10)));
-  if (status) q = q.where(eq(leaveRequestsTable.status, status));
-  if (type) q = q.where(eq(leaveRequestsTable.type, type));
+  const conditions = [];
+  if ((req as any).user!.role !== 'super_admin') conditions.push(eq(leaveRequestsTable.companyId, (req as any).user!.companyId!));
+  if (guardId) conditions.push(eq(leaveRequestsTable.guardId, parseInt(guardId, 10)));
+  if (status) conditions.push(eq(leaveRequestsTable.status, status));
+  if (type) conditions.push(eq(leaveRequestsTable.type, type));
+  if (conditions.length > 0) q = q.where(and(...conditions));
   const leaves = await q;
-  const guards = await db.select({ id: guardsTable.id, userId: guardsTable.userId }).from(guardsTable);
-  const users = await db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable);
+  let guardsQuery = db.select({ id: guardsTable.id, userId: guardsTable.userId }).from(guardsTable);
+  if ((req as any).user!.role !== 'super_admin') guardsQuery = guardsQuery.where(eq(guardsTable.companyId, (req as any).user!.companyId!));
+  const guards = await guardsQuery;
+  let usersQuery = db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable);
+  if ((req as any).user!.role !== 'super_admin') usersQuery = usersQuery.where(eq(usersTable.companyId, (req as any).user!.companyId!));
+  const users = await usersQuery;
   res.json(leaves.map(l => ({ id: l.id, guardId: l.guardId, guardName: guardName(guards, users, l.guardId), type: l.type, startDate: l.startDate, endDate: l.endDate, reason: l.reason ?? null, status: l.status, reviewedBy: l.reviewedBy ?? null, reviewNotes: l.reviewNotes ?? null, createdAt: l.createdAt.toISOString() })));
 });
 
 router.post("/leave", async (req, res): Promise<void> => {
   const { guardId, type, startDate, endDate, reason } = req.body;
   if (!guardId || !type || !startDate || !endDate) { res.status(400).json({ error: "guardId, type, startDate, endDate required" }); return; }
-  const [leave] = await db.insert(leaveRequestsTable).values({ guardId, type, startDate, endDate, reason: reason ?? null, status: "pending" }).returning();
+  const [leave] = await db.insert(leaveRequestsTable).values({ companyId: (req as any).user!.companyId!, guardId, type, startDate, endDate, reason: reason ?? null, status: "pending" }).returning();
   res.status(201).json({ id: leave.id, guardId: leave.guardId, guardName: null, type: leave.type, startDate: leave.startDate, endDate: leave.endDate, reason: leave.reason ?? null, status: leave.status, reviewedBy: null, reviewNotes: null, createdAt: leave.createdAt.toISOString() });
 });
 
 router.get("/leave/:id", async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
-  const [leave] = await db.select().from(leaveRequestsTable).where(eq(leaveRequestsTable.id, id));
+  const conditions = [eq(leaveRequestsTable.id, id)];
+  if ((req as any).user!.role !== 'super_admin') conditions.push(eq(leaveRequestsTable.companyId, (req as any).user!.companyId!));
+  const [leave] = await db.select().from(leaveRequestsTable).where(and(...conditions));
   if (!leave) { res.status(404).json({ error: "Not found" }); return; }
   res.json({ id: leave.id, guardId: leave.guardId, guardName: null, type: leave.type, startDate: leave.startDate, endDate: leave.endDate, reason: leave.reason ?? null, status: leave.status, reviewedBy: leave.reviewedBy ?? null, reviewNotes: leave.reviewNotes ?? null, createdAt: leave.createdAt.toISOString() });
 });
@@ -44,7 +53,10 @@ router.patch("/leave/:id", async (req, res): Promise<void> => {
   if (status !== undefined) updates.status = status;
   if (reviewNotes !== undefined) updates.reviewNotes = reviewNotes;
   if (reviewedBy !== undefined) updates.reviewedBy = reviewedBy;
-  const [leave] = await db.update(leaveRequestsTable).set(updates).where(eq(leaveRequestsTable.id, id)).returning();
+  updates.companyId = (req as any).user!.companyId!;
+  const conditions = [eq(leaveRequestsTable.id, id)];
+  if ((req as any).user!.role !== 'super_admin') conditions.push(eq(leaveRequestsTable.companyId, (req as any).user!.companyId!));
+  const [leave] = await db.update(leaveRequestsTable).set(updates).where(and(...conditions)).returning();
   if (!leave) { res.status(404).json({ error: "Not found" }); return; }
   res.json({ id: leave.id, guardId: leave.guardId, guardName: null, type: leave.type, startDate: leave.startDate, endDate: leave.endDate, reason: leave.reason ?? null, status: leave.status, reviewedBy: leave.reviewedBy ?? null, reviewNotes: leave.reviewNotes ?? null, createdAt: leave.createdAt.toISOString() });
 });
@@ -53,8 +65,11 @@ router.patch("/leave/:id", async (req, res): Promise<void> => {
 router.get("/training", async (req, res): Promise<void> => {
   const { status, type } = req.query as Record<string, string>;
   let q = db.select().from(trainingSessionsTable).$dynamic();
-  if (status) q = q.where(eq(trainingSessionsTable.status, status));
-  if (type) q = q.where(eq(trainingSessionsTable.type, type));
+  const conditions = [];
+  if ((req as any).user!.role !== 'super_admin') conditions.push(eq(trainingSessionsTable.companyId, (req as any).user!.companyId!));
+  if (status) conditions.push(eq(trainingSessionsTable.status, status));
+  if (type) conditions.push(eq(trainingSessionsTable.type, type));
+  if (conditions.length > 0) q = q.where(and(...conditions));
   const sessions = await q;
   res.json(sessions.map(s => ({ id: s.id, title: s.title, type: s.type, instructor: s.instructor ?? null, startDate: s.startDate, endDate: s.endDate ?? null, location: s.location ?? null, status: s.status, enrolledCount: s.enrolledCount, maxCapacity: s.maxCapacity ?? null, description: s.description ?? null, createdAt: s.createdAt.toISOString() })));
 });
@@ -62,13 +77,15 @@ router.get("/training", async (req, res): Promise<void> => {
 router.post("/training", async (req, res): Promise<void> => {
   const { title, type, instructor, startDate, endDate, location, status, maxCapacity, description } = req.body;
   if (!title || !type || !startDate) { res.status(400).json({ error: "title, type, startDate required" }); return; }
-  const [session] = await db.insert(trainingSessionsTable).values({ title, type, instructor: instructor ?? null, startDate, endDate: endDate ?? null, location: location ?? null, status: status ?? "scheduled", maxCapacity: maxCapacity ?? null, description: description ?? null }).returning();
+  const [session] = await db.insert(trainingSessionsTable).values({ companyId: (req as any).user!.companyId!, title, type, instructor: instructor ?? null, startDate, endDate: endDate ?? null, location: location ?? null, status: status ?? "scheduled", maxCapacity: maxCapacity ?? null, description: description ?? null }).returning();
   res.status(201).json({ id: session.id, title: session.title, type: session.type, instructor: session.instructor ?? null, startDate: session.startDate, endDate: session.endDate ?? null, location: session.location ?? null, status: session.status, enrolledCount: session.enrolledCount, maxCapacity: session.maxCapacity ?? null, description: session.description ?? null, createdAt: session.createdAt.toISOString() });
 });
 
 router.get("/training/:id", async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
-  const [session] = await db.select().from(trainingSessionsTable).where(eq(trainingSessionsTable.id, id));
+  const conditions = [eq(trainingSessionsTable.id, id)];
+  if ((req as any).user!.role !== 'super_admin') conditions.push(eq(trainingSessionsTable.companyId, (req as any).user!.companyId!));
+  const [session] = await db.select().from(trainingSessionsTable).where(and(...conditions));
   if (!session) { res.status(404).json({ error: "Not found" }); return; }
   res.json({ id: session.id, title: session.title, type: session.type, instructor: session.instructor ?? null, startDate: session.startDate, endDate: session.endDate ?? null, location: session.location ?? null, status: session.status, enrolledCount: session.enrolledCount, maxCapacity: session.maxCapacity ?? null, description: session.description ?? null, createdAt: session.createdAt.toISOString() });
 });
@@ -86,7 +103,10 @@ router.patch("/training/:id", async (req, res): Promise<void> => {
   if (status !== undefined) updates.status = status;
   if (maxCapacity !== undefined) updates.maxCapacity = maxCapacity;
   if (description !== undefined) updates.description = description;
-  const [session] = await db.update(trainingSessionsTable).set(updates).where(eq(trainingSessionsTable.id, id)).returning();
+  updates.companyId = (req as any).user!.companyId!;
+  const conditions = [eq(trainingSessionsTable.id, id)];
+  if ((req as any).user!.role !== 'super_admin') conditions.push(eq(trainingSessionsTable.companyId, (req as any).user!.companyId!));
+  const [session] = await db.update(trainingSessionsTable).set(updates).where(and(...conditions)).returning();
   if (!session) { res.status(404).json({ error: "Not found" }); return; }
   res.json({ id: session.id, title: session.title, type: session.type, instructor: session.instructor ?? null, startDate: session.startDate, endDate: session.endDate ?? null, location: session.location ?? null, status: session.status, enrolledCount: session.enrolledCount, maxCapacity: session.maxCapacity ?? null, description: session.description ?? null, createdAt: session.createdAt.toISOString() });
 });
@@ -95,8 +115,11 @@ router.patch("/training/:id", async (req, res): Promise<void> => {
 router.get("/recruitment", async (req, res): Promise<void> => {
   const { status, position } = req.query as Record<string, string>;
   let q = db.select().from(applicantsTable).$dynamic();
-  if (status) q = q.where(eq(applicantsTable.status, status));
-  if (position) q = q.where(eq(applicantsTable.position, position));
+  const conditions = [];
+  if ((req as any).user!.role !== 'super_admin') conditions.push(eq(applicantsTable.companyId, (req as any).user!.companyId!));
+  if (status) conditions.push(eq(applicantsTable.status, status));
+  if (position) conditions.push(eq(applicantsTable.position, position));
+  if (conditions.length > 0) q = q.where(and(...conditions));
   const applicants = await q;
   res.json(applicants.map(a => ({ id: a.id, position: a.position, applicantName: a.applicantName, email: a.email, phone: a.phone ?? null, status: a.status, appliedDate: a.appliedDate, interviewDate: a.interviewDate ?? null, notes: a.notes ?? null, resumeUrl: a.resumeUrl ?? null, createdAt: a.createdAt.toISOString() })));
 });
@@ -104,13 +127,15 @@ router.get("/recruitment", async (req, res): Promise<void> => {
 router.post("/recruitment", async (req, res): Promise<void> => {
   const { position, applicantName, email, phone, appliedDate, notes, status } = req.body;
   if (!position || !applicantName || !email) { res.status(400).json({ error: "position, applicantName, email required" }); return; }
-  const [applicant] = await db.insert(applicantsTable).values({ position, applicantName, email, phone: phone ?? null, appliedDate: appliedDate ?? new Date().toISOString().split("T")[0], notes: notes ?? null, status: status ?? "applied" }).returning();
+  const [applicant] = await db.insert(applicantsTable).values({ companyId: (req as any).user!.companyId!, position, applicantName, email, phone: phone ?? null, appliedDate: appliedDate ?? new Date().toISOString().split("T")[0], notes: notes ?? null, status: status ?? "applied" }).returning();
   res.status(201).json({ id: applicant.id, position: applicant.position, applicantName: applicant.applicantName, email: applicant.email, phone: applicant.phone ?? null, status: applicant.status, appliedDate: applicant.appliedDate, interviewDate: null, notes: applicant.notes ?? null, resumeUrl: null, createdAt: applicant.createdAt.toISOString() });
 });
 
 router.get("/recruitment/:id", async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
-  const [applicant] = await db.select().from(applicantsTable).where(eq(applicantsTable.id, id));
+  const conditions = [eq(applicantsTable.id, id)];
+  if ((req as any).user!.role !== 'super_admin') conditions.push(eq(applicantsTable.companyId, (req as any).user!.companyId!));
+  const [applicant] = await db.select().from(applicantsTable).where(and(...conditions));
   if (!applicant) { res.status(404).json({ error: "Not found" }); return; }
   res.json({ id: applicant.id, position: applicant.position, applicantName: applicant.applicantName, email: applicant.email, phone: applicant.phone ?? null, status: applicant.status, appliedDate: applicant.appliedDate, interviewDate: applicant.interviewDate ?? null, notes: applicant.notes ?? null, resumeUrl: applicant.resumeUrl ?? null, createdAt: applicant.createdAt.toISOString() });
 });
@@ -122,7 +147,10 @@ router.patch("/recruitment/:id", async (req, res): Promise<void> => {
   if (status !== undefined) updates.status = status;
   if (interviewDate !== undefined) updates.interviewDate = interviewDate;
   if (notes !== undefined) updates.notes = notes;
-  const [applicant] = await db.update(applicantsTable).set(updates).where(eq(applicantsTable.id, id)).returning();
+  updates.companyId = (req as any).user!.companyId!;
+  const conditions = [eq(applicantsTable.id, id)];
+  if ((req as any).user!.role !== 'super_admin') conditions.push(eq(applicantsTable.companyId, (req as any).user!.companyId!));
+  const [applicant] = await db.update(applicantsTable).set(updates).where(and(...conditions)).returning();
   if (!applicant) { res.status(404).json({ error: "Not found" }); return; }
   res.json({ id: applicant.id, position: applicant.position, applicantName: applicant.applicantName, email: applicant.email, phone: applicant.phone ?? null, status: applicant.status, appliedDate: applicant.appliedDate, interviewDate: applicant.interviewDate ?? null, notes: applicant.notes ?? null, resumeUrl: applicant.resumeUrl ?? null, createdAt: applicant.createdAt.toISOString() });
 });

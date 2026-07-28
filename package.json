@@ -1,16 +1,21 @@
 {
-  "name": "workspace",
-  "version": "0.0.0",
+  "name": "security-guard-erp",
+  "version": "1.0.0",
   "license": "MIT",
-  "scripts": {
-    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
-    "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
-  },
   "private": true,
-  "dependencies": {
-    "@replit/connectors-sdk": "^0.4.1"
+  "workspaces": [
+    "lib/*",
+    "artifacts/*",
+    "scripts"
+  ],
+  "scripts": {
+    "build": "npm run typecheck && npm run build:packages",
+    "build:packages": "npm run --workspaces --if-present build",
+    "typecheck:libs": "tsc --build",
+    "typecheck": "npm run typecheck:libs && npm run --workspaces --if-present typecheck",
+    "dev:api": "npm run --workspace artifacts/api-server dev",
+    "dev:web": "npm run --workspace artifacts/security-erp dev",
+    "db:push": "npm run --workspace lib/db push"
   },
   "devDependencies": {
     "prettier": "^3.9.5",

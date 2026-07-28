@@ -1,1 +1,0 @@
-- [SecurERP architecture](securerp-arch.md) — full-stack Security Guard ERP; API at /api on port 8080, frontend on port per $PORT.

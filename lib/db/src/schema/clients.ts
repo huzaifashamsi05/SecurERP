@@ -1,9 +1,11 @@
 import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { companiesTable } from "./companies";
 
 export const clientsTable = pgTable("clients", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companiesTable.id).notNull(),
   name: text("name").notNull(),
   email: text("email").notNull(),
   phone: text("phone"),
@@ -17,6 +19,7 @@ export const clientsTable = pgTable("clients", {
 
 export const sitesTable = pgTable("sites", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companiesTable.id).notNull(),
   clientId: integer("client_id").notNull().references(() => clientsTable.id),
   name: text("name").notNull(),
   address: text("address").notNull(),

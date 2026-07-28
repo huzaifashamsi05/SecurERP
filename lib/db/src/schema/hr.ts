@@ -3,9 +3,11 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { guardsTable } from "./guards";
 import { usersTable } from "./users";
+import { companiesTable } from "./companies";
 
 export const leaveRequestsTable = pgTable("leave_requests", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companiesTable.id).notNull(),
   guardId: integer("guard_id").notNull().references(() => guardsTable.id),
   type: text("type").notNull(), // annual | sick | emergency | unpaid
   startDate: text("start_date").notNull(), // YYYY-MM-DD
@@ -20,6 +22,7 @@ export const leaveRequestsTable = pgTable("leave_requests", {
 
 export const trainingSessionsTable = pgTable("training_sessions", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companiesTable.id).notNull(),
   title: text("title").notNull(),
   type: text("type").notNull(), // onboarding | safety | first_aid | technical | compliance
   instructor: text("instructor"),
@@ -36,6 +39,7 @@ export const trainingSessionsTable = pgTable("training_sessions", {
 
 export const applicantsTable = pgTable("applicants", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").references(() => companiesTable.id).notNull(),
   position: text("position").notNull(),
   applicantName: text("applicant_name").notNull(),
   email: text("email").notNull(),
