@@ -2,7 +2,6 @@
   "name": "@workspace/api-server",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
   "scripts": {
     "dev": "node ./build.mjs && node --env-file=../../.env --enable-source-maps ./dist/index.mjs",
     "build": "node ./build.mjs",
