@@ -1,18 +1,50 @@
 import { useState } from 'react';
-import { useGetAttendance } from '@workspace/api-client-react';
+import { useGetAttendance, useCreateAttendance, useGetGuards } from '@workspace/api-client-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Search, CheckCircle2, XCircle, Clock, Plus, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Attendance() {
   const [searchTerm, setSearchTerm] = useState('');
-  const { data: attendance, isLoading } = useGetAttendance();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedGuard, setSelectedGuard] = useState<string>('');
+  const [status, setStatus] = useState<string>('present');
+  
+  const { toast } = useToast();
+  const { data: attendance, isLoading, refetch } = useGetAttendance();
+  const { data: guards } = useGetGuards();
+  const createMutation = useCreateAttendance();
 
   const filteredData = attendance?.filter(a => 
     a.guardName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleLogAttendance = async () => {
+    if (!selectedGuard) return;
+    
+    try {
+      await createMutation.mutateAsync({
+        data: {
+          guardId: parseInt(selectedGuard),
+          date: format(new Date(), 'yyyy-MM-dd'),
+          checkIn: new Date().toISOString(),
+          status: status as any
+        }
+      });
+      toast({ title: 'Attendance Logged', description: 'Record has been successfully saved.' });
+      setIsDialogOpen(false);
+      refetch();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to log attendance.', variant: 'destructive' });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -21,6 +53,10 @@ export default function Attendance() {
           <h1 className="text-2xl font-bold tracking-tight">Attendance Log</h1>
           <p className="text-muted-foreground text-sm mt-1">Review clock-in and clock-out records.</p>
         </div>
+        <Button onClick={() => setIsDialogOpen(true)} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          Log Attendance
+        </Button>
       </div>
 
       <Card className="border-border/50 shadow-sm">
@@ -91,6 +127,52 @@ export default function Attendance() {
           </Table>
         </div>
       </Card>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Log Attendance</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Select Guard</Label>
+              <Select value={selectedGuard} onValueChange={setSelectedGuard}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a guard" />
+                </SelectTrigger>
+                <SelectContent>
+                  {guards?.map((guard) => (
+                    <SelectItem key={guard.id} value={guard.id.toString()}>
+                      {guard.name || `Guard ${guard.employeeId}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="present">Present</SelectItem>
+                  <SelectItem value="absent">Absent</SelectItem>
+                  <SelectItem value="late">Late</SelectItem>
+                  <SelectItem value="half_day">Half Day</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleLogAttendance} disabled={!selectedGuard || createMutation.isPending}>
+              {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Record
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
